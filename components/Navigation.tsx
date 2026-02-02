@@ -37,6 +37,7 @@ export default function Navigation() {
             <NavLink href="#playground">Playground</NavLink>
             <NavLink href="#models">Models</NavLink>
             <NavLink href="#architecture">Docs</NavLink>
+            <NavLink href="/quiz">Quiz</NavLink>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -70,6 +71,7 @@ export default function Navigation() {
             <MobileNavLink href="#playground">AI Playground</MobileNavLink>
             <MobileNavLink href="#models">Models</MobileNavLink>
             <MobileNavLink href="#architecture">Docs</MobileNavLink>
+            <MobileNavLink href="/quiz">Quiz</MobileNavLink>
             <button
               onClick={() => {
                 window.open('https://app.ambient.xyz/', '_blank')

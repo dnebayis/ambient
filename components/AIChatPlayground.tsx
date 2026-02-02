@@ -49,21 +49,30 @@ export default function AIChatPlayground() {
         content: 'You are a helpful AI assistant. Provide clear, concise answers in 2-3 sentences. Be direct and avoid lengthy explanations unless specifically asked.'
       }
 
-      const response = await ambientAPI.createChatCompletion({
-        model: 'mini',
-        messages: [systemMessage, ...messages, userMessage],
-        temperature: 0.7,
-        max_completion_tokens: 2000,
-        emit_usage: true,
-        reasoning: {
-          enabled: false,
+      // Use server-side API route to protect API key
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          model: 'mini',
+          messages: [systemMessage, ...messages, userMessage],
+          temperature: 0.7,
+          max_completion_tokens: 2000,
+        }),
       })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.statusText}`)
+      }
+
+      const data = await response.json()
 
       const endTime = Date.now()
       setResponseTime(endTime - startTime)
 
-      let rawContent = response.choices?.[0]?.message?.content || 'No response from AI'
+      let rawContent = data.choices?.[0]?.message?.content || 'No response from AI'
       let cleanContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
 
       const assistantMessage: ChatMessage = {
@@ -73,9 +82,9 @@ export default function AIChatPlayground() {
 
       setMessages(prev => [...prev, assistantMessage])
 
-      if (response.usage) {
-        setTokenCount(response.usage.completion_tokens)
-        setTotalTokens(prev => prev + response.usage!.total_tokens)
+      if (data.usage) {
+        setTokenCount(data.usage.completion_tokens)
+        setTotalTokens(prev => prev + data.usage.total_tokens)
       }
     } catch (error) {
       console.error('Chat error:', error)

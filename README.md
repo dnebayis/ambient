@@ -80,7 +80,7 @@ npm start
    - Import your GitHub repository
    - Vercel will automatically detect the Next.js configuration
    - (Optional) Add environment variable:
-     - Key: `NEXT_PUBLIC_AMBIENT_API_KEY`
+     - Key: `AMBIENT_API_KEY`
      - Value: Your Ambient API key
    - Click "Deploy"
 
@@ -96,7 +96,7 @@ If deploying to other platforms:
 1. Ensure Node.js 18+ is available
 2. Build command: `npm run build`
 3. Start command: `npm start`
-4. Add environment variable `NEXT_PUBLIC_AMBIENT_API_KEY` (optional)
+4. Add environment variable `AMBIENT_API_KEY` (optional)
 
 ## Project Structure
 
@@ -133,7 +133,7 @@ Create `.env.local` in the root directory with:
 
 ```bash
 # Optional: Ambient API key for live features
-NEXT_PUBLIC_AMBIENT_API_KEY=your_api_key_here
+AMBIENT_API_KEY=your_api_key_here
 ```
 
 For Vercel deployment, add this as an environment variable in the Vercel dashboard.
