@@ -49,9 +49,23 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-500">
-            © 2026 Ambient. Interactive simulation for educational purposes.
-          </p>
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
+            <p className="text-sm text-gray-500">
+              © 2026 Ambient. Interactive simulation for educational purposes.
+            </p>
+            <span className="hidden md:inline text-gray-700">•</span>
+            <p className="text-sm text-gray-500">
+              Created by{' '}
+              <a
+                href="https://x.com/0xshawtyy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-400 transition-colors font-medium"
+              >
+                @0xshawtyy
+              </a>
+            </p>
+          </div>
           <div className="flex gap-6 text-sm text-gray-500">
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
