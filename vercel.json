@@ -5,8 +5,5 @@
   "devCommand": "cd ambient-simulation && npm run dev",
   "installCommand": "cd ambient-simulation && npm install",
   "framework": "nextjs",
-  "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_AMBIENT_API_KEY": "@ambient_api_key"
-  }
+  "regions": ["iad1"]
 }
