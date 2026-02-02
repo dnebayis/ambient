@@ -1,0 +1,7 @@
+{
+  "name": "ambient",
+  "version": "1.0.0",
+  "description": "Interactive simulation of Ambient - AI-powered Proof of Work blockchain",
+  "private": true,
+  "license": "MIT"
+}

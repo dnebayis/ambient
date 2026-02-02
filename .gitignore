@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+ambient-simulation/node_modules/
+
+# Next.js
+ambient-simulation/.next/
+ambient-simulation/out/
+.next/
+out/
+
+# Production builds
+build/
+dist/
+
+# Environment variables
+.env
+.env*.local
+ambient-simulation/.env.local
+
+# Vercel
+.vercel
+
+# OS files
+.DS_Store
+*.pem
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Remotion
+ambient-simulation/.remotion/
