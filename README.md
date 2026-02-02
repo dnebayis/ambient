@@ -26,11 +26,8 @@ This project demonstrates Ambient's revolutionary technology through an interact
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/dnebayis/ambient.git
 cd ambient
-
-# Navigate to the project directory
-cd ambient-simulation
 
 # Install dependencies
 npm install
@@ -44,7 +41,7 @@ cp .env.example .env.local
 
 ```bash
 # Start development server
-cd ambient-simulation
+cd ambient
 npm run dev
 ```
 
@@ -54,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ```bash
 # Build for production
-cd ambient-simulation
+cd ambient
 npm run build
 
 # Start production server
@@ -88,33 +85,34 @@ npm start
    - Click "Deploy"
 
 3. **Configuration**
-   - The `vercel.json` file is already configured for optimal deployment
-   - Build and install commands are set to use the `ambient-simulation` directory
-   - Framework is detected as Next.js
+   - Vercel automatically detects Next.js and configures build settings
+   - No additional configuration needed
+   - Framework is auto-detected as Next.js
 
 ### Manual Deployment
 
 If deploying to other platforms:
 
 1. Ensure Node.js 18+ is available
-2. Set the root directory to `ambient-simulation`
-3. Build command: `npm run build`
-4. Start command: `npm start`
-5. Add environment variable `NEXT_PUBLIC_AMBIENT_API_KEY` (optional)
+2. Build command: `npm run build`
+3. Start command: `npm start`
+4. Add environment variable `NEXT_PUBLIC_AMBIENT_API_KEY` (optional)
 
 ## Project Structure
 
 ```
 ambient/
-├── ambient-simulation/          # Main Next.js application
-│   ├── app/                     # Next.js app directory
-│   ├── components/              # React components
-│   ├── lib/                     # Utility functions
-│   ├── public/                  # Static assets
-│   ├── remotion/                # Video generation (optional)
-│   └── package.json
-├── vercel.json                  # Vercel deployment config
+├── app/                         # Next.js app directory
+├── components/                  # React components
+├── lib/                         # Utility functions
+├── public/                      # Static assets
+├── package.json                 # Project dependencies
+├── next.config.js               # Next.js configuration
+├── tailwind.config.ts           # Tailwind CSS configuration
+├── tsconfig.json                # TypeScript configuration
 ├── .gitignore                   # Git ignore rules
+├── .env.example                 # Example environment variables
+├── DEPLOYMENT.md                # Deployment guide (Turkish)
 └── README.md                    # This file
 ```
 
@@ -131,7 +129,7 @@ The app works in demo mode without an API key, but connecting to the real API pr
 
 ## Environment Variables
 
-Create `ambient-simulation/.env.local` with:
+Create `.env.local` in the root directory with:
 
 ```bash
 # Optional: Ambient API key for live features
@@ -148,10 +146,6 @@ For Vercel deployment, add this as an environment variable in the Vercel dashboa
 - **Framer Motion** - Smooth animations
 - **Three.js & React Three Fiber** - 3D visualizations
 - **Lucide React** - Icon library
-
-## Features Documentation
-
-For detailed feature documentation, see [ambient-simulation/README.md](./ambient-simulation/README.md)
 
 ## Learn More About Ambient
 
