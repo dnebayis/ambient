@@ -44,3 +44,11 @@ coverage/
 
 # Remotion
 ambient-simulation/.remotion/
+
+# Claude Code
+.claude/
+
+# Video files
+*.mp4
+*.mov
+*.avi
