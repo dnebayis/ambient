@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AMBIENT_SYSTEM_PROMPT } from '@/lib/ambient-knowledge'
 
 const AMBIENT_API_BASE = 'https://api.ambient.xyz'
-const AMBIENT_API_KEY = process.env.AMBIENT_API_KEY // Server-side only, no NEXT_PUBLIC_
+const AMBIENT_API_KEY = process.env.AMBIENT_API_KEY
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+}
 
 /**
- * Server-side Chat API Route
- * Protects API key from client exposure
+ * Ambient-Only AI Chat API
+ * Uses Ambient's knowledge base to answer only Ambient-related questions
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { messages, model = 'mini', temperature = 0.7, max_completion_tokens = 2000 } = body
+    const { messages, model = 'large', temperature = 0.7, max_completion_tokens = 2048 } = body
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -19,7 +25,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Make request to Ambient API
+    // Prepend system prompt with Ambient knowledge base
+    const messagesWithSystem: ChatMessage[] = [
+      { role: 'system', content: AMBIENT_SYSTEM_PROMPT },
+      ...messages
+    ]
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
@@ -33,15 +44,12 @@ export async function POST(request: NextRequest) {
       headers,
       body: JSON.stringify({
         model,
-        messages,
+        messages: messagesWithSystem,
         temperature,
         max_completion_tokens,
         stream: false,
         emit_usage: true,
-        emit_verified: false,
-        reasoning: {
-          enabled: false,
-        },
+        emit_verified: true,
       }),
     })
 

@@ -44,9 +44,11 @@ export default function AIChatPlayground() {
     const startTime = Date.now()
 
     try {
+      // Use Ambient-specialized system prompt from knowledge base
+      const { AMBIENT_SYSTEM_PROMPT } = await import('@/lib/ambient-knowledge')
       const systemMessage: ChatMessage = {
         role: 'system',
-        content: 'You are a helpful AI assistant. Provide clear, concise answers in 2-3 sentences. Be direct and avoid lengthy explanations unless specifically asked.'
+        content: AMBIENT_SYSTEM_PROMPT
       }
 
       // Use server-side API route to protect API key
@@ -56,10 +58,10 @@ export default function AIChatPlayground() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'mini',
+          model: 'large',
           messages: [systemMessage, ...messages, userMessage],
           temperature: 0.7,
-          max_completion_tokens: 2000,
+          max_completion_tokens: 2048,
         }),
       })
 
@@ -110,11 +112,11 @@ export default function AIChatPlayground() {
           className="text-center mb-16"
         >
           <h2 className="text-5xl font-bold mb-6">
-            <span className="gradient-text">AI Chat</span> Playground
+            <span className="gradient-text">Ambient AI</span> Assistant
           </h2>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Experience Ambient's powerful AI models. Chat with our 600B+ parameter model
-            and explore the capabilities of decentralized AI inference.
+            Ask anything about Ambient blockchain. Our AI is specialized in Proof of Logits,
+            architecture, mining, API, and all things Ambient.
           </p>
         </motion.div>
 
@@ -129,11 +131,22 @@ export default function AIChatPlayground() {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-center py-20 text-gray-500"
+                      className="text-center py-12 text-gray-500"
                     >
                       <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Start a conversation with Ambient AI</p>
-                      <p className="text-sm mt-2">Powered by decentralized AI models</p>
+                      <p className="text-lg mb-2">Ask me about Ambient!</p>
+                      <p className="text-sm mb-4">I'm specialized in Ambient blockchain technology</p>
+                      <div className="flex flex-wrap gap-2 justify-center max-w-md mx-auto">
+                        {['What is Ambient?', 'How does Proof of Logits work?', 'What is the verification overhead?'].map((q, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setInput(q)}
+                            className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
                     </motion.div>
                   )}
 

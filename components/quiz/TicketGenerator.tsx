@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import html2canvas from 'html2canvas'
-import { Download, Share2, Sparkles } from 'lucide-react'
+import { Download, Share2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { LevelTier } from '@/lib/quiz-data'
 
@@ -52,14 +52,19 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.querySelector('[data-ticket-ref]') as HTMLElement
           if (clonedElement) {
-            // Force all styles to be inline and visible
+            // Set explicit pixel dimensions (critical: aspect-ratio doesn't work in cloned doc)
+            clonedElement.style.width = ticketRef.current!.offsetWidth + 'px'
+            clonedElement.style.height = ticketRef.current!.offsetHeight + 'px'
+            clonedElement.style.aspectRatio = 'auto'
+
+            // Force visibility
             clonedElement.style.display = 'block'
             clonedElement.style.opacity = '1'
             clonedElement.style.visibility = 'visible'
 
-            // Ensure all text is visible
-            const allText = clonedElement.querySelectorAll('p, h1, h2, h3, span, div')
-            allText.forEach((el: any) => {
+            // Ensure all children have proper dimensions
+            const allElements = clonedElement.querySelectorAll('*')
+            allElements.forEach((el: any) => {
               el.style.opacity = '1'
               el.style.visibility = 'visible'
             })
@@ -125,88 +130,116 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
           <div
             ref={ticketRef}
             data-ticket-ref="true"
-            className="relative w-full aspect-[1.91/1] rounded-xl overflow-hidden mb-6"
+            className="relative w-full aspect-[1.91/1] rounded-2xl overflow-hidden mb-6"
             style={{
-              background: `linear-gradient(135deg, ${level.color}15 0%, #00000080 100%)`,
+              background: '#0a0a0f',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
             }}
           >
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="grid-background h-full" />
+            {/* Background: simple gradient for html2canvas compatibility */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)`,
+              }}
+            />
+
+            {/* Ambient Logo/Brand */}
+            <div className="absolute top-6 left-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logo.png"
+                  alt="Ambient Logo"
+                  className="w-12 h-12 rounded-xl"
+                />
+                <div className="flex flex-col justify-center">
+                  <div className="text-white font-bold text-lg" style={{ letterSpacing: '-0.02em', lineHeight: '1.2' }}>
+                    AMBIENT
+                  </div>
+                  <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', letterSpacing: '0.12em', lineHeight: '1.4' }}>
+                    Knowledge Quiz
+                  </div>
+                </div>
+              </div>
             </div>
 
+            {/* Profile Picture */}
+            {avatarUrl && (
+              <div className="absolute top-6 right-6 z-10">
+                <img
+                  src={avatarUrl}
+                  alt={`@${username}`}
+                  className="w-28 h-28 rounded-full object-cover"
+                  style={{
+                    border: '3px solid rgba(255, 255, 255, 0.12)',
+                    boxShadow: `0 0 28px ${level.color}45, 0 8px 32px rgba(0, 0, 0, 0.5)`,
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${username}`
+                  }}
+                />
+              </div>
+            )}
+
             {/* Main Content */}
-            <div className="relative h-full flex flex-col justify-between p-8">
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-medium text-gray-400">AMBIENT QUIZ</span>
-                  </div>
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              {/* Participant */}
+              <div className="mb-3">
+                <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '2px' }}>
+                  Participant
                 </div>
-                {avatarUrl && (
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2">
-                    <img
-                      src={avatarUrl}
-                      alt={`@${username}`}
-                      className="w-32 h-32 rounded-full border-4 border-gray-800 object-cover"
-                      onError={(e) => {
-                        // Fallback to default avatar
-                        e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${username}`
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="text-2xl font-bold text-white" style={{ letterSpacing: '-0.01em' }}>
+                  @{username}
+                </div>
               </div>
 
-              {/* User Info & Score */}
-              <div className="space-y-4">
+              {/* Score & Level — inline row, left-aligned together */}
+              <div className="flex items-end gap-8 mb-4">
                 <div>
-                  <p className="text-gray-400 text-sm mb-1">Participant</p>
-                  <p className="text-2xl font-bold">@{username}</p>
-                </div>
-
-                <div className="flex items-end gap-8">
-                  <div>
-                    <p className="text-gray-400 text-sm mb-1">Score</p>
-                    <p className="text-5xl font-bold">{score}<span className="text-2xl text-gray-400">/10</span></p>
+                  <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '2px' }}>
+                    Score
                   </div>
-                  <div className="flex-1">
-                    <p className="text-gray-400 text-sm mb-1" style={{ color: '#9ca3af' }}>Achievement</p>
-                    <p
-                      style={{
-                        color: level.color,
-                        fontSize: '28px',
-                        fontWeight: '900',
-                        lineHeight: '1.3',
-                        marginTop: '4px',
-                        marginBottom: '4px',
-                        textShadow: `0 0 20px ${level.color}40`,
-                        WebkitFontSmoothing: 'antialiased'
-                      }}
-                    >
-                      {level.name}
-                    </p>
-                    <p className="text-sm text-gray-400 mt-1" style={{ color: '#9ca3af', marginTop: '4px' }}>{level.description}</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white" style={{ letterSpacing: '-0.02em' }}>
+                      {score}
+                    </span>
+                    <span className="font-medium" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '1.25rem' }}>
+                      /10
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '2px' }}>
+                    Level
+                  </div>
+                  <div
+                    className="text-2xl font-bold"
+                    style={{
+                      color: level.color,
+                      letterSpacing: '-0.01em',
+                      textShadow: `0 0 20px ${level.color}50`,
+                    }}
+                  >
+                    {level.name}
                   </div>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-                <div className="text-sm text-gray-500">
+              <div
+                className="pt-3 flex items-center justify-between"
+                style={{
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <div className="font-medium" style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
                   Machine Intelligence as Currency
                 </div>
-                <div className="text-sm font-mono text-gray-600">
+                <div className="font-mono" style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
                   ambient.xyz
                 </div>
               </div>
             </div>
-
-            {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
           </div>
 
           {/* Action Buttons */}
