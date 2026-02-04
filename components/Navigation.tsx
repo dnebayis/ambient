@@ -34,7 +34,7 @@ export default function Navigation() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             <NavLink href="#features">PoL</NavLink>
-            <NavLink href="/playground">AI Assistant</NavLink>
+            <NavLink href="#playground">Playground</NavLink>
             <NavLink href="#models">Models</NavLink>
             <NavLink href="#architecture">Docs</NavLink>
             <NavLink href="/quiz">Quiz</NavLink>
@@ -68,7 +68,7 @@ export default function Navigation() {
             className="md:hidden mt-4 pb-4 space-y-3"
           >
             <MobileNavLink href="#features">Proof of Logits</MobileNavLink>
-            <MobileNavLink href="/playground">AI Assistant</MobileNavLink>
+            <MobileNavLink href="#playground">AI Playground</MobileNavLink>
             <MobileNavLink href="#models">Models</MobileNavLink>
             <MobileNavLink href="#architecture">Docs</MobileNavLink>
             <MobileNavLink href="/quiz">Quiz</MobileNavLink>
