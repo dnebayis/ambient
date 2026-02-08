@@ -156,7 +156,7 @@ export default function Architecture() {
           <div className="inline-flex flex-wrap gap-4 justify-center">
             <ResourceButton label="Documentation" href="https://docs.ambient.xyz" />
             <ResourceButton label="GitHub" href="https://github.com/ambient-xyz" />
-            <ResourceButton label="Whitepaper" href="https://ambient.xyz" />
+            <ResourceButton label="Litepaper" href="https://ambient.xyz/litepaper" />
             <ResourceButton label="Testnet" href="https://app.ambient.xyz" />
           </div>
         </motion.div>

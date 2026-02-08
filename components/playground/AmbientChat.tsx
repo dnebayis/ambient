@@ -110,7 +110,7 @@ export default function AmbientChat() {
           <Bot className="w-5 h-5 text-blue-500" />
         </div>
         <div>
-          <h3 className="font-semibold text-white">Ambient AI Assistant</h3>
+          <h3 className="font-semibold text-white">Ambient AI Playground</h3>
           <p className="text-xs text-gray-400">Specialized in Ambient blockchain</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -156,11 +156,10 @@ export default function AmbientChat() {
               exit={{ opacity: 0 }}
               className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
             >
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === 'user'
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
                   ? 'bg-blue-600'
                   : 'bg-gradient-to-br from-blue-500 to-purple-600'
-              }`}>
+                }`}>
                 {message.role === 'user' ? (
                   <User className="w-4 h-4 text-white" />
                 ) : (
@@ -168,11 +167,10 @@ export default function AmbientChat() {
                 )}
               </div>
               <div className={`flex-1 max-w-[80%] ${message.role === 'user' ? 'text-right' : ''}`}>
-                <div className={`inline-block p-4 rounded-2xl ${
-                  message.role === 'user'
+                <div className={`inline-block p-4 rounded-2xl ${message.role === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-800 text-gray-100'
-                }`}>
+                  }`}>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                 </div>
                 {message.role === 'assistant' && message.verified && (
