@@ -1,8 +1,8 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import html2canvas from 'html2canvas'
-import { Download, Share2 } from 'lucide-react'
+import { Download, Share2, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { LevelTier } from '@/lib/quiz-data'
 
@@ -13,56 +13,66 @@ interface TicketGeneratorProps {
   onClose: () => void
 }
 
+// Fixed ticket dimensions - ensures consistent rendering across all devices
+const TICKET_WIDTH = 600
+const TICKET_HEIGHT = Math.round(TICKET_WIDTH / 1.91)
+
 export default function TicketGenerator({ username, score, level, onClose }: TicketGeneratorProps) {
   const ticketRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [avatarUrl, setAvatarUrl] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [ticketBlob, setTicketBlob] = useState<Blob | null>(null)
+  const [scale, setScale] = useState(1)
+
+  const updateScale = useCallback(() => {
+    if (containerRef.current) {
+      const availableWidth = containerRef.current.offsetWidth
+      setScale(Math.min(1, availableWidth / TICKET_WIDTH))
+    }
+  }, [])
 
   useEffect(() => {
-    // Fetch Twitter avatar through our proxy
     setAvatarUrl(`/api/twitter-avatar?username=${encodeURIComponent(username)}`)
 
-    // Preload fonts for better rendering
     if (typeof window !== 'undefined') {
       document.fonts.ready.then(() => {
         console.log('Fonts loaded')
       })
     }
-  }, [username])
+
+    updateScale()
+    window.addEventListener('resize', updateScale)
+    return () => window.removeEventListener('resize', updateScale)
+  }, [username, updateScale])
 
   const generateTicket = async () => {
     if (!ticketRef.current) return
 
     setIsGenerating(true)
     try {
-      // Wait for fonts and images to fully load
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const canvas = await html2canvas(ticketRef.current, {
         backgroundColor: '#000000',
-        scale: 3, // Higher scale for better quality
+        scale: 3,
         logging: false,
         useCORS: true,
         allowTaint: true,
         imageTimeout: 15000,
-        width: ticketRef.current.offsetWidth,
-        height: ticketRef.current.offsetHeight,
+        width: TICKET_WIDTH,
+        height: TICKET_HEIGHT,
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.querySelector('[data-ticket-ref]') as HTMLElement
           if (clonedElement) {
-            // Set explicit pixel dimensions (critical: aspect-ratio doesn't work in cloned doc)
-            clonedElement.style.width = ticketRef.current!.offsetWidth + 'px'
-            clonedElement.style.height = ticketRef.current!.offsetHeight + 'px'
-            clonedElement.style.aspectRatio = 'auto'
+            // Reset to full fixed dimensions for capture
+            clonedElement.style.width = TICKET_WIDTH + 'px'
+            clonedElement.style.height = TICKET_HEIGHT + 'px'
+            clonedElement.style.transform = 'none'
+            clonedElement.style.position = 'relative'
+            clonedElement.style.overflow = 'hidden'
 
-            // Force visibility
-            clonedElement.style.display = 'block'
-            clonedElement.style.opacity = '1'
-            clonedElement.style.visibility = 'visible'
-
-            // Ensure all children have proper dimensions
             const allElements = clonedElement.querySelectorAll('*')
             allElements.forEach((el: any) => {
               el.style.opacity = '1'
@@ -76,7 +86,7 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
         if (blob) {
           setTicketBlob(blob)
         }
-      }, 'image/png', 1.0) // Maximum quality
+      }, 'image/png', 1.0)
     } catch (error) {
       console.error('Error generating ticket:', error)
     } finally {
@@ -105,151 +115,170 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
       await generateTicket()
     }
 
-    const tweetText = `I just scored ${score}/10 on the Ambient Quiz and achieved ${level.name} level! 🚀\n\nTest your knowledge about AI-powered blockchain:\n`
+    const tweetText = `I just scored ${score}/10 on the Ambient Quiz and achieved ${level.name} level! \u{1F680}\n\nTest your knowledge about AI-powered blockchain:\n`
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent('https://ambient.xyz')}`
 
     window.open(tweetUrl, '_blank')
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative max-w-2xl w-full"
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="relative max-w-2xl w-full my-auto"
       >
         <button
           onClick={onClose}
-          className="absolute -top-4 -right-4 z-10 w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center transition-colors"
+          className="absolute -top-3 -right-3 z-10 w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center transition-colors"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
-          {/* Ticket Preview */}
+        <div className="bg-gray-900 rounded-2xl p-4 sm:p-8 border border-gray-800">
+          {/* Ticket Preview - container measures available width */}
           <div
-            ref={ticketRef}
-            data-ticket-ref="true"
-            className="relative w-full aspect-[1.91/1] rounded-2xl overflow-hidden mb-6"
-            style={{
-              background: '#0a0a0f',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-            }}
+            ref={containerRef}
+            className="w-full mb-4 sm:mb-6 overflow-hidden rounded-2xl"
+            style={{ height: Math.round(TICKET_HEIGHT * scale) }}
           >
-            {/* Background: simple gradient for html2canvas compatibility */}
+            {/* Ticket always renders at fixed 600px width, scaled to fit */}
             <div
-              className="absolute inset-0 pointer-events-none"
+              ref={ticketRef}
+              data-ticket-ref="true"
+              className="relative overflow-hidden rounded-2xl"
               style={{
-                background: `linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)`,
+                width: TICKET_WIDTH,
+                height: TICKET_HEIGHT,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                background: '#0a0a0f',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
               }}
-            />
-
-            {/* Ambient Logo/Brand */}
-            <div className="absolute top-6 left-6">
-              <div className="flex items-center gap-3">
-                <img
-                  src="/logo.png"
-                  alt="Ambient Logo"
-                  className="w-12 h-12 rounded-xl"
-                />
-                <div className="flex flex-col justify-center">
-                  <div className="text-white font-bold text-lg" style={{ letterSpacing: '-0.02em', lineHeight: '1.2' }}>
-                    AMBIENT
-                  </div>
-                  <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', letterSpacing: '0.12em', lineHeight: '1.4' }}>
-                    Knowledge Quiz
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Picture */}
-            {avatarUrl && (
-              <div className="absolute top-6 right-6 z-10">
-                <img
-                  src={avatarUrl}
-                  alt={`@${username}`}
-                  className="w-28 h-28 rounded-full object-cover"
-                  style={{
-                    border: '3px solid rgba(255, 255, 255, 0.12)',
-                    boxShadow: `0 0 28px ${level.color}45, 0 8px 32px rgba(0, 0, 0, 0.5)`,
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${username}`
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Main Content */}
-            <div className="absolute bottom-0 left-0 right-0 p-6">
-              {/* Participant */}
-              <div className="mb-3">
-                <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '2px' }}>
-                  Participant
-                </div>
-                <div className="text-2xl font-bold text-white" style={{ letterSpacing: '-0.01em' }}>
-                  @{username}
-                </div>
-              </div>
-
-              {/* Score & Level — inline row, left-aligned together */}
-              <div className="flex items-end gap-8 mb-4">
-                <div>
-                  <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '2px' }}>
-                    Score
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white" style={{ letterSpacing: '-0.02em' }}>
-                      {score}
-                    </span>
-                    <span className="font-medium" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '1.25rem' }}>
-                      /10
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium uppercase" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '2px' }}>
-                    Level
-                  </div>
-                  <div
-                    className="text-2xl font-bold"
-                    style={{
-                      color: level.color,
-                      letterSpacing: '-0.01em',
-                      textShadow: `0 0 20px ${level.color}50`,
-                    }}
-                  >
-                    {level.name}
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
+            >
+              {/* Background gradient */}
               <div
-                className="pt-3 flex items-center justify-between"
+                className="absolute inset-0 pointer-events-none"
                 style={{
-                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)',
                 }}
-              >
-                <div className="font-medium" style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                  Machine Intelligence as Currency
+              />
+
+              {/* Ambient Logo/Brand */}
+              <div style={{ position: 'absolute', top: 24, left: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <img
+                    src="/logo.png"
+                    alt="Ambient Logo"
+                    style={{ width: 48, height: 48, borderRadius: 12 }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ color: '#ffffff', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', lineHeight: '1.2' }}>
+                      AMBIENT
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500, fontSize: 11, letterSpacing: '0.12em', lineHeight: '1.4', textTransform: 'uppercase' }}>
+                      Knowledge Quiz
+                    </div>
+                  </div>
                 </div>
-                <div className="font-mono" style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
-                  ambient.xyz
+              </div>
+
+              {/* Profile Picture */}
+              {avatarUrl && (
+                <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+                  <img
+                    src={avatarUrl}
+                    alt={`@${username}`}
+                    style={{
+                      width: 112,
+                      height: 112,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '3px solid rgba(255, 255, 255, 0.12)',
+                      boxShadow: `0 0 28px ${level.color}45, 0 8px 32px rgba(0, 0, 0, 0.5)`,
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${username}`
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Main Content */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24 }}>
+                {/* Participant */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontWeight: 500, textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontSize: 11, letterSpacing: '0.12em', marginBottom: 2 }}>
+                    Participant
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em' }}>
+                    @{username}
+                  </div>
+                </div>
+
+                {/* Score & Level */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 32, marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontWeight: 500, textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontSize: 11, letterSpacing: '0.12em', marginBottom: 2 }}>
+                      Score
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <span style={{ fontSize: 36, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                        {score}
+                      </span>
+                      <span style={{ fontWeight: 500, color: 'rgba(255,255,255,0.3)', fontSize: 20 }}>
+                        /10
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 500, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontSize: 11, letterSpacing: '0.12em', marginBottom: 2 }}>
+                      Level
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 24,
+                        fontWeight: 700,
+                        color: level.color,
+                        letterSpacing: '-0.01em',
+                        textShadow: `0 0 20px ${level.color}50`,
+                      }}
+                    >
+                      {level.name}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  <div style={{ fontWeight: 500, color: 'rgba(255,255,255,0.25)', fontSize: 11, letterSpacing: '0.05em' }}>
+                    Machine Intelligence as Currency
+                  </div>
+                  <div style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.25)', fontSize: 11, letterSpacing: '0.08em' }}>
+                    ambient.xyz
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={downloadTicket}
               disabled={isGenerating}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 sm:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
             >
               <Download className="w-5 h-5" />
               {isGenerating ? 'Generating...' : 'Download Ticket'}
@@ -258,7 +287,7 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={shareOnTwitter}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 sm:py-4 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
             >
               <Share2 className="w-5 h-5" />
               Share on X

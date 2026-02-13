@@ -101,7 +101,7 @@ export default function QuizPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-6xl font-bold mb-6 gradient-text"
+                  className="text-4xl sm:text-6xl font-bold mb-6 gradient-text"
                   style={{ letterSpacing: '-0.02em' }}
                 >
                   Test Your
@@ -223,7 +223,7 @@ export default function QuizPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="glass-effect rounded-2xl p-8 mb-6"
+                className="glass-effect rounded-2xl p-5 sm:p-8 mb-6"
                 style={{
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
                 }}
@@ -233,13 +233,13 @@ export default function QuizPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="text-2xl font-bold mb-8 leading-tight"
+                  className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8 leading-tight"
                   style={{ letterSpacing: '-0.01em' }}
                 >
                   {quizQuestions[currentQuestion].question}
                 </motion.h2>
 
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-6 sm:mb-8">
                   {quizQuestions[currentQuestion].options.map((option, index) => {
                     const isSelected = selectedOption === index
                     const isCorrect = index === quizQuestions[currentQuestion].correctAnswer
@@ -340,7 +340,7 @@ export default function QuizPage() {
                 whileTap={{ scale: selectedOption !== null && !showExplanation ? 0.98 : 1 }}
                 onClick={handleNextQuestion}
                 disabled={selectedOption === null || showExplanation}
-                className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-semibold text-base transition-all duration-300 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 sm:py-5 rounded-xl font-semibold text-base transition-all duration-300 disabled:cursor-not-allowed"
                 style={{
                   background: selectedOption !== null && !showExplanation
                     ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
@@ -403,7 +403,7 @@ export default function QuizPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-6xl font-bold mb-4 gradient-text"
+                className="text-4xl sm:text-6xl font-bold mb-4 gradient-text"
                 style={{ letterSpacing: '-0.02em' }}
               >
                 Quiz Complete!
@@ -412,7 +412,7 @@ export default function QuizPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-xl text-gray-400 mb-10"
+                className="text-lg sm:text-xl text-gray-400 mb-8 sm:mb-10"
               >
                 Great work, <span className="text-white font-semibold">@{username}</span>!
               </motion.p>
@@ -422,10 +422,10 @@ export default function QuizPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="glass-effect rounded-2xl p-8 mb-8"
+                className="glass-effect rounded-2xl p-5 sm:p-8 mb-8"
                 style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)' }}
               >
-                <div className="grid grid-cols-2 gap-8 mb-8">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 mb-8">
                   {/* Score */}
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -436,10 +436,10 @@ export default function QuizPage() {
                       Your Score
                     </div>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-7xl font-bold" style={{ letterSpacing: '-0.03em' }}>
+                      <span className="text-5xl sm:text-7xl font-bold" style={{ letterSpacing: '-0.03em' }}>
                         {score}
                       </span>
-                      <span className="text-3xl text-gray-500 font-medium">/10</span>
+                      <span className="text-2xl sm:text-3xl text-gray-500 font-medium">/10</span>
                     </div>
                     <div className="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                       <motion.div
@@ -470,7 +470,7 @@ export default function QuizPage() {
                       }}
                     >
                       <p
-                        className="text-2xl font-bold"
+                        className="text-xl sm:text-2xl font-bold"
                         style={{
                           color: level.color,
                           letterSpacing: '-0.01em',
@@ -517,13 +517,13 @@ export default function QuizPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
-                className="flex gap-4"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4"
               >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowTicket(true)}
-                  className="flex-1 px-8 py-5 rounded-xl font-semibold text-base transition-all"
+                  className="flex-1 px-8 py-4 sm:py-5 rounded-xl font-semibold text-base transition-all"
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
                     boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
@@ -535,7 +535,7 @@ export default function QuizPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={restartQuiz}
-                  className="flex-1 px-8 py-5 glass-effect rounded-xl font-semibold text-base hover:bg-white/5 transition-all"
+                  className="flex-1 px-8 py-4 sm:py-5 glass-effect rounded-xl font-semibold text-base hover:bg-white/5 transition-all"
                 >
                   Try Again
                 </motion.button>
