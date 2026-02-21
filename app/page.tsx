@@ -16,8 +16,9 @@ const ModelDashboard = dynamic(() => import('@/components/ModelDashboard'), { ss
 export default function Home() {
   // Ensure page starts at top on load
   useEffect(() => {
-    // Only run on initial page load, not on hash changes
-    if (!window.location.hash) {
+    // Clear hash and scroll to top on initial load
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname)
       window.scrollTo(0, 0)
     }
   }, [])
@@ -26,31 +27,31 @@ export default function Home() {
     <main className="min-h-screen">
       <Navigation />
 
-      <div id="hero">
+      <div id="home" className="scroll-mt-24">
         <Hero />
       </div>
 
-      <div id="features">
+      <div id="pol" className="scroll-mt-24">
         <PoLVisualizer />
       </div>
 
-      <div id="mining">
+      <div id="mining" className="scroll-mt-24">
         <MiningSimulator />
       </div>
 
-      <div id="network">
+      <div id="network" className="scroll-mt-24">
         <NetworkStats />
       </div>
 
-      <div id="playground">
+      <div id="assistant" className="scroll-mt-24">
         <AIChatPlayground />
       </div>
 
-      <div id="models">
+      <div id="models" className="scroll-mt-24">
         <ModelDashboard />
       </div>
 
-      <div id="architecture">
+      <div id="docs" className="scroll-mt-24">
         <Architecture />
       </div>
 

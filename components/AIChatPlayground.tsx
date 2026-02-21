@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, Sparkles, Coins, Clock, MessageSquare, Shield, AlertTriangle, Clipboard } from 'lucide-react'
+import { Send, Loader2, Sparkles, Coins, Clock, MessageSquare, Shield, AlertTriangle, Clipboard, Scale, Gauge } from 'lucide-react'
 import { ambientAPI, ChatMessage } from '@/lib/ambient-api'
 
 type ModelInfo = {
@@ -18,6 +18,8 @@ type LocalMessage = ChatMessage & {
   merkle_root?: string
   error_status?: number
   error_text?: string
+  compareSide?: 'left' | 'right'
+  compareGroupId?: string
 }
 
 type HistoryItem = {
@@ -26,6 +28,14 @@ type HistoryItem = {
   tokens: number | null
   status: 'ok' | 'error'
   fallback?: boolean
+}
+
+type BenchmarkResult = {
+  model: string
+  status: 'ok' | 'error'
+  durationMs: number | null
+  tokens: number | null
+  note?: string
 }
 
 export default function AIChatPlayground() {
@@ -45,6 +55,12 @@ export default function AIChatPlayground() {
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [modelsFallback, setModelsFallback] = useState(false)
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [lastError, setLastError] = useState<{ status?: number; message?: string } | null>(null)
+  const [benchmarking, setBenchmarking] = useState(false)
+  const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>([])
+  const [compareEnabled, setCompareEnabled] = useState(false)
+  const [compareModelB, setCompareModelB] = useState('zai-org/GLM-4.6')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -97,6 +113,16 @@ export default function AIChatPlayground() {
     fetchModels()
   }, [])
 
+  const estimatedPromptTokens = Math.max(1, Math.ceil(input.trim().length / 4))
+  const completionCap = 2048
+
+  const promptTemplates = [
+    { label: 'Ambient summary (short)', text: 'Summarize Ambient network in 3 bullet points.' },
+    { label: 'Proof of Logits steps', text: 'List the steps of Proof of Logits verification as a numbered sequence.' },
+    { label: 'JSON schema', text: 'Return a JSON with keys: overview, risks, next_steps for adopting Ambient.' },
+    { label: 'Model comparison', text: 'Compare ambient/large vs GLM-4.6 on context length, strengths, and tooling.' },
+  ]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
@@ -111,66 +137,164 @@ export default function AIChatPlayground() {
     setInput('')
     setIsLoading(true)
 
-    const startTime = Date.now()
-
-    try {
-      // Use server-side API route to protect API key (it already injects the system prompt)
+    const sendToModel = async (modelId: string) => {
+      const start = Date.now()
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: selectedModel,
+          model: modelId,
           messages: [...messages, userMessage],
           temperature: 0.7,
           max_completion_tokens: 2048,
         }),
       })
 
-      let data: any
       if (!response.ok) {
-        // Try to surface API error details for easier debugging
         const errorBody = await response.json().catch(() => null)
         const message = errorBody?.error || response.statusText || 'Unknown error'
         const err: any = new Error(`API request failed: ${message}`)
-        ;(err as any).status = response.status
+        err.status = response.status
         throw err
-      } else {
-        data = await response.json()
       }
 
-      const endTime = Date.now()
-      setResponseTime(endTime - startTime)
+      const data = await response.json()
+      const rawContent = data.choices?.[0]?.message?.content || 'No response from AI'
+      const cleanContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
 
-      let rawContent = data.choices?.[0]?.message?.content || 'No response from AI'
-      let cleanContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
-
-      const assistantMessage: LocalMessage = {
-        role: 'assistant',
+      return {
+        data,
         content: cleanContent,
-        model: selectedModel,
-        verified: data.verified,
-        merkle_root: data.merkle_root,
+        duration: Date.now() - start,
       }
+    }
 
-      setMessages(prev => [...prev, assistantMessage])
+    try {
+      if (compareEnabled) {
+        const groupId = `cmp-${Date.now()}`
+        const [primary, secondary] = await Promise.allSettled([
+          sendToModel(selectedModel),
+          sendToModel(compareModelB),
+        ])
 
-      if (data.usage) {
-        setTokenCount(data.usage.completion_tokens)
-        setTotalTokens(prev => prev + data.usage.total_tokens)
+        if (primary.status === 'fulfilled') {
+          const { data, content, duration } = primary.value
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content,
+              model: selectedModel,
+              verified: data.verified,
+              merkle_root: data.merkle_root,
+              compareSide: 'left',
+              compareGroupId: groupId,
+            },
+          ])
+          setResponseTime(duration)
+          if (data.usage) {
+            setTokenCount(data.usage.completion_tokens)
+            setTotalTokens(prev => prev + data.usage.total_tokens)
+          }
+          setHistory(prev => [
+            {
+              model: selectedModel,
+              durationMs: duration,
+              tokens: data.usage?.total_tokens ?? null,
+              status: 'ok' as const,
+              fallback: modelsFallback,
+            },
+            ...prev,
+          ].slice(0, 5))
+        } else {
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Primary model error.',
+              model: selectedModel,
+              error_status: primary.reason?.status,
+              error_text: primary.reason?.message,
+              compareSide: 'left',
+              compareGroupId: groupId,
+            },
+          ])
+        }
+
+        if (secondary.status === 'fulfilled') {
+          const { data, content, duration } = secondary.value
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content,
+              model: compareModelB,
+              verified: data.verified,
+              merkle_root: data.merkle_root,
+              compareSide: 'right',
+              compareGroupId: groupId,
+            },
+          ])
+          setHistory(prev => [
+            {
+              model: compareModelB,
+              durationMs: duration,
+              tokens: secondary.value.data.usage?.total_tokens ?? null,
+              status: 'ok' as const,
+              fallback: modelsFallback,
+            },
+            ...prev,
+          ].slice(0, 5))
+        } else {
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Secondary model error.',
+              model: compareModelB,
+              error_status: secondary.reason?.status,
+              error_text: secondary.reason?.message,
+              compareSide: 'right',
+              compareGroupId: groupId,
+            },
+          ])
+        }
+        setLastError(null)
+      } else {
+        const result = await sendToModel(selectedModel)
+        const { data, content, duration } = result
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content,
+            model: selectedModel,
+            verified: data.verified,
+            merkle_root: data.merkle_root,
+          },
+        ])
+
+        setResponseTime(duration)
+
+        if (data.usage) {
+          setTokenCount(data.usage.completion_tokens)
+          setTotalTokens(prev => prev + data.usage.total_tokens)
+        }
+
+        setHistory(prev => [
+          {
+            model: selectedModel,
+            durationMs: duration,
+            tokens: data.usage?.total_tokens ?? null,
+            status: 'ok' as const,
+            fallback: modelsFallback,
+          },
+          ...prev,
+        ].slice(0, 5))
+        setLastError(null)
       }
-
-      setHistory(prev => [
-        {
-          model: selectedModel,
-          durationMs: endTime - startTime,
-          tokens: data.usage?.total_tokens ?? null,
-          status: 'ok' as const,
-          fallback: modelsFallback,
-        },
-        ...prev,
-      ].slice(0, 5))
     } catch (error: any) {
       console.error('Chat error:', error)
 
@@ -193,10 +317,91 @@ export default function AIChatPlayground() {
         },
         ...prev,
       ].slice(0, 5))
+      setLastError({
+        status: error?.status || error?.response?.status,
+        message: error?.message || 'Unknown error',
+      })
     } finally {
       setIsLoading(false)
     }
   }
+
+  const exportSession = () => {
+    const blob = new Blob([JSON.stringify({ messages, history, selectedModel }, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ambient-session-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importSession = async (file?: File | null) => {
+    const f = file || fileInputRef.current?.files?.[0]
+    if (!f) return
+    try {
+      const text = await f.text()
+      const data = JSON.parse(text)
+      if (Array.isArray(data.messages)) setMessages(data.messages)
+      if (Array.isArray(data.history)) setHistory(data.history.slice(0, 5))
+      if (typeof data.selectedModel === 'string') setSelectedModel(data.selectedModel)
+    } catch (err) {
+      console.error('Import failed', err)
+      setLastError({ message: 'Import failed: invalid file' })
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const runBenchmark = async () => {
+    const modelsToTest = models.slice(0, 3)
+    if (!modelsToTest.length) return
+    setBenchmarking(true)
+    setBenchmarkResults([])
+    const prompt = 'Summarize Ambient in one sentence.'
+
+    for (const model of modelsToTest) {
+      const start = Date.now()
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model.id,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            max_completion_tokens: 512,
+          }),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        setBenchmarkResults(prev => [
+          ...prev,
+          {
+            model: model.id,
+            status: 'ok',
+            durationMs: Date.now() - start,
+            tokens: data.usage?.total_tokens ?? null,
+            note: data.verified ? 'verified' : undefined,
+          },
+        ])
+      } catch (err: any) {
+        setBenchmarkResults(prev => [
+          ...prev,
+          {
+            model: model.id,
+            status: 'error',
+            durationMs: null,
+            tokens: null,
+            note: err?.message || 'error',
+          },
+        ])
+      }
+    }
+    setBenchmarking(false)
+  }
+
+  const runCompare = async () => null
 
   return (
     <section className="py-24 px-6">
@@ -208,7 +413,7 @@ export default function AIChatPlayground() {
           className="text-center mb-16"
         >
           <h2 className="text-5xl font-bold mb-6">
-            <span className="gradient-text">Ambient AI</span> Assistant
+            <span className="gradient-text">Ambient</span> AI Playground
           </h2>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             Ask anything about Ambient blockchain. Our AI is specialized in Proof of Logits,
@@ -251,66 +456,7 @@ export default function AIChatPlayground() {
                     </motion.div>
                   )}
 
-                  {messages.map((message, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-800 text-gray-100'
-                          }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {message.role === 'assistant' && (
-                            <Sparkles className="w-3 h-3 text-blue-400" />
-                          )}
-                          <span className="text-xs opacity-70 uppercase">
-                            {message.role === 'user' ? 'You' : 'Ambient AI'}
-                          </span>
-                          {message.model && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10">
-                              {message.model}
-                            </span>
-                          )}
-                          {message.verified && (
-                            <span className="flex items-center gap-1 text-[10px] text-green-400">
-                              <Shield className="w-3 h-3" />
-                              verified
-                            </span>
-                          )}
-                          {message.error_status && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-200">
-                              Hata {message.error_status}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                          {message.content}
-                        </p>
-                        {message.merkle_root && (
-                          <button
-                            type="button"
-                            className="mt-2 inline-flex items-center gap-1 text-[11px] text-blue-300 hover:text-white"
-                            onClick={() => navigator.clipboard?.writeText(message.merkle_root!)}
-                            title="Merkle root'u kopyala"
-                          >
-                            <Clipboard className="w-3 h-3" />
-                            <span>hash</span>
-                          </button>
-                        )}
-                        {message.error_text && (
-                          <p className="mt-2 text-[12px] text-amber-300">
-                            {message.error_text}
-                          </p>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
+                  {renderMessages(messages, models)}
                 </AnimatePresence>
 
                 {isLoading && (
@@ -367,6 +513,47 @@ export default function AIChatPlayground() {
                       <p className="mt-1 text-[11px] text-amber-400">{modelsError}</p>
                     )}
                   </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs text-gray-400">Compare inline</label>
+                      <label className="text-[11px] flex items-center gap-1 text-gray-400">
+                        <input
+                          type="checkbox"
+                          checked={compareEnabled}
+                          onChange={(e) => setCompareEnabled(e.target.checked)}
+                          className="accent-blue-500"
+                        />
+                        Enable
+                      </label>
+                    </div>
+                    <select
+                      value={compareModelB}
+                      onChange={(e) => setCompareModelB(e.target.value)}
+                      disabled={!compareEnabled}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 disabled:opacity-60"
+                    >
+                      {models.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {getDisplayName(m, models)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Açıkken aynı prompt iki modele gönderilir, yanıtlar yan yana gösterilir.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {promptTemplates.map((tpl) => (
+                    <button
+                      key={tpl.label}
+                      type="button"
+                      className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                      onClick={() => setInput(tpl.text)}
+                    >
+                      {tpl.label}
+                    </button>
+                  ))}
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -377,6 +564,10 @@ export default function AIChatPlayground() {
                     disabled={isLoading}
                     className="flex-1 px-4 py-3 bg-black/40 border border-white/10 rounded-lg focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                   />
+                  <div className="flex flex-col items-end justify-center text-[11px] text-gray-400 pr-1">
+                    <div>≈ {estimatedPromptTokens} tokens prompt</div>
+                    <div className="text-amber-300">max {completionCap} completion</div>
+                  </div>
                   <motion.button
                     type="submit"
                     disabled={!input.trim() || isLoading}
@@ -391,6 +582,7 @@ export default function AIChatPlayground() {
                     )}
                   </motion.button>
                 </div>
+
               </form>
             </div>
           </div>
@@ -418,6 +610,11 @@ export default function AIChatPlayground() {
                   label="Response Time"
                   value={responseTime ? `${responseTime}ms` : '-'}
                 />
+                <StatRow
+                  icon={<Scale className="w-4 h-4" />}
+                  label="Cost hint"
+                  value={`≈ ${(estimatedPromptTokens / 1000).toFixed(3)}k prompt + ${(completionCap / 1000).toFixed(1)}k max`}
+                />
               </div>
               {history.length > 0 && (
                 <div className="mt-5">
@@ -438,6 +635,64 @@ export default function AIChatPlayground() {
                     ))}
                   </div>
                 </div>
+              )}
+              <div className="mt-4 flex gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={exportSession}
+                  className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Export session
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Import
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json"
+                  className="hidden"
+                  onChange={(e) => importSession(e.target.files?.[0])}
+                />
+              </div>
+            </div>
+
+            <div className="glass-effect rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Gauge className="w-5 h-5 text-amber-400" />
+                  Quick Benchmarks
+                </h3>
+                <button
+                  type="button"
+                  disabled={benchmarking}
+                  onClick={runBenchmark}
+                  className="text-xs px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg disabled:opacity-60"
+                >
+                  {benchmarking ? 'Running...' : 'Run'}
+                </button>
+              </div>
+              {benchmarkResults.length > 0 && (
+                <div className="space-y-2 text-sm text-gray-300">
+                  {benchmarkResults.map((b, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-lg">
+                      <span className="font-mono text-xs">{b.model}</span>
+                      <span className="text-xs">{b.durationMs ? `${b.durationMs}ms` : '—'}</span>
+                      <span className="text-xs">{b.tokens ?? '—'} tok</span>
+                      <span className={`text-xs ${b.status === 'ok' ? 'text-green-400' : 'text-red-300'}`}>
+                        {b.status}
+                      </span>
+                      {b.note && <span className="text-[10px] text-gray-400">{b.note}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!benchmarkResults.length && !benchmarking && (
+                <p className="text-xs text-gray-500">Runs a short prompt across the first 3 models.</p>
               )}
             </div>
 
@@ -462,6 +717,22 @@ export default function AIChatPlayground() {
                 </li>
               </ul>
             </div>
+
+            {lastError && (
+              <div className="glass-effect rounded-2xl p-6 border border-red-500/30 bg-red-500/5">
+                <div className="flex items-center gap-2 text-red-300 mb-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="font-semibold text-sm">Error diagnostics</span>
+                </div>
+                <div className="text-sm text-gray-300 space-y-1">
+                  <div>Status: {lastError.status ?? 'unknown'}</div>
+                  <div>Message: {lastError.message}</div>
+                  <div className="text-xs text-gray-400">
+                    Quick fixes: check model id, ensure API key in .env, and keep tokens under context limit.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -486,3 +757,100 @@ function StatRow({ icon, label, value }: {
     </div>
   )
 }
+
+function renderMessages(messages: LocalMessage[], models: ModelInfo[]) {
+  const rows: React.ReactNode[] = []
+
+  const Bubble = ({ message }: { message: LocalMessage }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+    >
+      <div
+        className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
+          ? 'bg-blue-600 text-white'
+          : 'bg-gray-800 text-gray-100'
+          }`}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          {message.role === 'assistant' && (
+            <Sparkles className="w-3 h-3 text-blue-400" />
+          )}
+          <span className="text-xs opacity-70 uppercase">
+            {message.role === 'user' ? 'You' : 'Ambient AI'}
+          </span>
+          {message.model && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10">
+              {getDisplayName({ id: message.model, name: message.model }, models)}
+            </span>
+          )}
+          <button
+            type="button"
+            className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/10 text-gray-300"
+            onClick={() => navigator.clipboard?.writeText(message.content)}
+            title="Copy message"
+          >
+            copy
+          </button>
+          {message.verified && (
+            <span className="flex items-center gap-1 text-[10px] text-green-400">
+              <Shield className="w-3 h-3" />
+              verified
+            </span>
+          )}
+          {message.error_status && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-200">
+              Hata {message.error_status}
+            </span>
+          )}
+        </div>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {message.content}
+        </p>
+        {message.merkle_root && (
+          <button
+            type="button"
+            className="mt-2 inline-flex items-center gap-1 text-[11px] text-blue-300 hover:text-white"
+            onClick={() => navigator.clipboard?.writeText(message.merkle_root!)}
+            title="Merkle root'u kopyala"
+          >
+            <Clipboard className="w-3 h-3" />
+            <span>hash</span>
+          </button>
+        )}
+        {message.error_text && (
+          <p className="mt-2 text-[12px] text-amber-300">
+            {message.error_text}
+          </p>
+        )}
+      </div>
+    </motion.div>
+  )
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (msg.compareGroupId && msg.compareSide) {
+      const next = messages[i + 1]
+      if (next?.compareGroupId === msg.compareGroupId && next.compareSide) {
+        rows.push(
+          <div key={`${msg.compareGroupId}-${i}`} className="grid md:grid-cols-2 gap-3">
+            <Bubble message={msg} />
+            <Bubble message={next} />
+          </div>
+        )
+        i++
+        continue
+      }
+    }
+    rows.push(<Bubble key={i} message={msg} />)
+  }
+
+  return rows
+}
+  const getDisplayName = (m: ModelInfo, list: ModelInfo[]) => {
+    const duplicate = m.name && list.filter(x => x.name === m.name).length > 1
+    if (duplicate) return `${m.name} (${m.id})`
+    return m.name || m.id
+  }

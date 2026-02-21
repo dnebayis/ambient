@@ -15,6 +15,13 @@ export default function PoLVisualizer() {
   const [logits, setLogits] = useState<LogitData[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const verificationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const steps = [
+    { label: '1) Prompt → /api/chat', detail: 'User prompt & model id forwarded to Ambient API' },
+    { label: '2) Logit hashing', detail: 'Workers hash per-token logits; hashes streamed back' },
+    { label: '3) Proof aggregation', detail: 'Hashes batched, merkle root produced' },
+    { label: '4) On-chain anchor', detail: 'Root + metadata anchored to Ambient chain' },
+    { label: '5) Client verification', detail: 'Client can replay with merkle root to verify' },
+  ]
 
   const generateLogits = () => {
     // Clear any existing interval
@@ -175,6 +182,22 @@ export default function PoLVisualizer() {
               title="Real-time Hashing"
               description="Per-token hashes allow immediate replay/verification—no ZK or TEE dependency."
             />
+          </div>
+        </div>
+
+        <div className="mt-12 glass-effect rounded-2xl p-8">
+          <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <LinkIcon className="w-5 h-5 text-blue-400" />
+            Proof of Logits → API map
+          </h3>
+          <p className="text-sm text-gray-400 mb-4">Each step lines up with the Ambient API docs you shared.</p>
+          <div className="grid md:grid-cols-5 gap-4 text-sm">
+            {steps.map((step, idx) => (
+              <div key={idx} className="p-4 bg-black/40 border border-white/5 rounded-lg space-y-2">
+                <div className="text-blue-400 font-semibold">{step.label}</div>
+                <div className="text-gray-400 text-xs">{step.detail}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

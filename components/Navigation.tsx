@@ -2,11 +2,17 @@
 
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setIsOpen(false)
+    window.addEventListener('close-nav', handler as any)
+    return () => window.removeEventListener('close-nav', handler as any)
+  }, [])
 
   return (
     <motion.nav
@@ -17,7 +23,8 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <motion.div
+          <motion.a
+            href="#hero"
             whileHover={{ scale: 1.05 }}
             className="flex items-center gap-2"
           >
@@ -29,14 +36,14 @@ export default function Navigation() {
               className="w-8 h-8 rounded-lg"
             />
             <span className="text-xl font-bold">Ambient</span>
-          </motion.div>
+          </motion.a>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <NavLink href="#features">PoL</NavLink>
-            <NavLink href="#playground">Assistant</NavLink>
+            <NavLink href="#pol">PoL</NavLink>
+            <NavLink href="#assistant">AI Playground</NavLink>
             <NavLink href="#models">Models</NavLink>
-            <NavLink href="#architecture">Docs</NavLink>
+            <NavLink href="#docs">Docs</NavLink>
             <NavLink href="/quiz">Quiz</NavLink>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -67,10 +74,10 @@ export default function Navigation() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden mt-4 pb-4 space-y-3"
           >
-            <MobileNavLink href="#features">Proof of Logits</MobileNavLink>
-            <MobileNavLink href="#playground">Assistant</MobileNavLink>
+            <MobileNavLink href="#pol">Proof of Logits</MobileNavLink>
+            <MobileNavLink href="#assistant">AI Playground</MobileNavLink>
             <MobileNavLink href="#models">Models</MobileNavLink>
-            <MobileNavLink href="#architecture">Docs</MobileNavLink>
+            <MobileNavLink href="#docs">Docs</MobileNavLink>
             <MobileNavLink href="/quiz">Quiz</MobileNavLink>
             <button
               onClick={() => {
@@ -105,6 +112,11 @@ function MobileNavLink({ href, children }: { href: string; children: React.React
     <a
       href={href}
       className="block py-2 text-gray-400 hover:text-white transition-colors"
+      onClick={() => {
+        // close menu after navigation
+        const nav = document.querySelector('nav')
+        nav?.dispatchEvent(new CustomEvent('close-nav'))
+      }}
     >
       {children}
     </a>

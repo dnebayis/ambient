@@ -165,6 +165,15 @@ export default function ModelDashboard() {
                     {features.length > 2 && ' …'}
                   </div>
                 </div>
+                <div className="p-3 bg-black/40 rounded-lg col-span-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Info className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs text-gray-500">Usage hint</span>
+                  </div>
+                  <div className="text-xs text-gray-300">
+                    Keep prompts within context; cost scales with total tokens. Rate-limits depend on your Ambient plan.
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
