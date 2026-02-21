@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
-import { Brain, Hash, CheckCircle, Activity } from 'lucide-react'
+import { Brain, Hash, CheckCircle, Activity, Link as LinkIcon, BookOpen } from 'lucide-react'
 
 interface LogitData {
   id: number
@@ -82,6 +82,15 @@ export default function PoLVisualizer() {
             Real-time LLM verification through logit fingerprinting. Each token generation
             creates a unique hash, ensuring cryptographic proof of authentic AI inference.
           </p>
+          <div className="flex items-center justify-center gap-3 mt-4 text-sm text-blue-400">
+            <a href="https://ambient.xyz/litepaper" target="_blank" className="inline-flex items-center gap-1 hover:text-white transition-colors">
+              <BookOpen className="w-4 h-4" /> Litepaper
+            </a>
+            <span className="text-gray-600">•</span>
+            <a href="https://docs.ambient.xyz" target="_blank" className="inline-flex items-center gap-1 hover:text-white transition-colors">
+              <LinkIcon className="w-4 h-4" /> Docs
+            </a>
+          </div>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -153,18 +162,18 @@ export default function PoLVisualizer() {
           <div className="space-y-6">
             <InfoCard
               icon={<Activity className="w-6 h-6" />}
-              title="0.1% Overhead"
-              description="Near-zero verification cost with cryptographic security. Each logit creates an infallible fingerprint of the model state."
+              title="≈0.1% Overhead (claim)"
+              description="Hashing logits instead of full traces is claimed to keep verification nearly costless while preserving cryptographic assurance."
             />
             <InfoCard
               icon={<Brain className="w-6 h-6" />}
               title="600B+ Parameters"
-              description="Full verification on massive language models. The network consensus is the model itself, continuously evolving."
+              description="Designed to attest giant models (target/claim). Consensus wraps the model state, so verification is tied to the running weights."
             />
             <InfoCard
               icon={<Hash className="w-6 h-6" />}
               title="Real-time Hashing"
-              description="Logit sequences are hashed in real-time, providing instant verification without ZK bottlenecks or TEE limitations."
+              description="Per-token hashes allow immediate replay/verification—no ZK or TEE dependency."
             />
           </div>
         </div>

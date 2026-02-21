@@ -64,12 +64,12 @@ export default function Footer() {
             <p className="text-sm text-gray-500">
               Created by{' '}
               <a
-                href="https://x.com/0xshawtyy"
+                href="https://x.com/siyabaldacc"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:text-blue-400 transition-colors font-medium"
               >
-                @0xshawtyy
+                @siyabaldacc
               </a>
               {' • '}
               <a

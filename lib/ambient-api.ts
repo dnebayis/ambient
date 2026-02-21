@@ -133,7 +133,7 @@ export class AmbientAPI {
     return this.fetch<ChatCompletionResponse>('/v1/chat/completions', {
       method: 'POST',
       body: JSON.stringify({
-        model: request.model || 'large', // Default to 'large' model
+        model: request.model || 'ambient/large', // Default to Ambient's flagship model
         messages: request.messages,
         temperature: request.temperature,
         max_completion_tokens: request.max_completion_tokens,

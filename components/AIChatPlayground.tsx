@@ -2,16 +2,49 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, Sparkles, Coins, Clock, MessageSquare } from 'lucide-react'
+import { Send, Loader2, Sparkles, Coins, Clock, MessageSquare, Shield, AlertTriangle, Clipboard } from 'lucide-react'
 import { ambientAPI, ChatMessage } from '@/lib/ambient-api'
 
+type ModelInfo = {
+  id: string
+  name?: string
+  context_length?: number
+  supported_features?: string[]
+}
+
+type LocalMessage = ChatMessage & {
+  model?: string
+  verified?: boolean
+  merkle_root?: string
+  error_status?: number
+  error_text?: string
+}
+
+type HistoryItem = {
+  model: string
+  durationMs: number | null
+  tokens: number | null
+  status: 'ok' | 'error'
+  fallback?: boolean
+}
+
 export default function AIChatPlayground() {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<LocalMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [tokenCount, setTokenCount] = useState(0)
   const [totalTokens, setTotalTokens] = useState(0)
   const [responseTime, setResponseTime] = useState<number | null>(null)
+  const FALLBACK_MODELS: ModelInfo[] = [
+    { id: 'ambient/large', name: 'Ambient Large', context_length: 128000 },
+    { id: 'zai-org/GLM-4.6', name: 'GLM-4.6', context_length: 200000 },
+  ]
+  const [models, setModels] = useState<ModelInfo[]>(FALLBACK_MODELS)
+  const [selectedModel, setSelectedModel] = useState('ambient/large')
+  const [modelsLoading, setModelsLoading] = useState(false)
+  const [modelsError, setModelsError] = useState<string | null>(null)
+  const [modelsFallback, setModelsFallback] = useState(false)
+  const [history, setHistory] = useState<HistoryItem[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -28,13 +61,50 @@ export default function AIChatPlayground() {
     return () => clearTimeout(timer)
   }, [messages])
 
+  // Fetch model list from server (falls back to defaults if fails)
+  useEffect(() => {
+    const fetchModels = async () => {
+      setModelsLoading(true)
+      setModelsError(null)
+      try {
+        const res = await fetch('/api/models', { cache: 'no-store' })
+        if (!res.ok) throw new Error('model fetch failed')
+        const data = await res.json()
+        if (Array.isArray(data?.data) && data.data.length > 0) {
+          const list: ModelInfo[] = data.data
+          setModels(list)
+          setModelsFallback(Boolean(data.fallback))
+          // Keep selected model if still valid, else pick first
+          const ids = list.map(m => m.id)
+          setSelectedModel(prev => (ids.includes(prev) ? prev : ids[0]))
+        } else if (data?.error) {
+          setModelsError('Model list alınamadı, varsayılan modeller gösteriliyor.')
+          setModels(FALLBACK_MODELS)
+          setModelsFallback(true)
+          const fallbackIds = FALLBACK_MODELS.map(m => m.id)
+          setSelectedModel(prev => (fallbackIds.includes(prev) ? prev : fallbackIds[0]))
+        }
+      } catch (err) {
+        setModelsError('Model listesi yüklenemedi, varsayılan modeller gösteriliyor.')
+        setModels(FALLBACK_MODELS)
+        setModelsFallback(true)
+        const fallbackIds = FALLBACK_MODELS.map(m => m.id)
+        setSelectedModel(prev => (fallbackIds.includes(prev) ? prev : fallbackIds[0]))
+      } finally {
+        setModelsLoading(false)
+      }
+    }
+    fetchModels()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
 
-    const userMessage: ChatMessage = {
+    const userMessage: LocalMessage = {
       role: 'user',
       content: input.trim(),
+      model: selectedModel,
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -44,32 +114,31 @@ export default function AIChatPlayground() {
     const startTime = Date.now()
 
     try {
-      // Use Ambient-specialized system prompt from knowledge base
-      const { AMBIENT_SYSTEM_PROMPT } = await import('@/lib/ambient-knowledge')
-      const systemMessage: ChatMessage = {
-        role: 'system',
-        content: AMBIENT_SYSTEM_PROMPT
-      }
-
-      // Use server-side API route to protect API key
+      // Use server-side API route to protect API key (it already injects the system prompt)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'large',
-          messages: [systemMessage, ...messages, userMessage],
+          model: selectedModel,
+          messages: [...messages, userMessage],
           temperature: 0.7,
           max_completion_tokens: 2048,
         }),
       })
 
+      let data: any
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`)
+        // Try to surface API error details for easier debugging
+        const errorBody = await response.json().catch(() => null)
+        const message = errorBody?.error || response.statusText || 'Unknown error'
+        const err: any = new Error(`API request failed: ${message}`)
+        ;(err as any).status = response.status
+        throw err
+      } else {
+        data = await response.json()
       }
-
-      const data = await response.json()
 
       const endTime = Date.now()
       setResponseTime(endTime - startTime)
@@ -77,9 +146,12 @@ export default function AIChatPlayground() {
       let rawContent = data.choices?.[0]?.message?.content || 'No response from AI'
       let cleanContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
 
-      const assistantMessage: ChatMessage = {
+      const assistantMessage: LocalMessage = {
         role: 'assistant',
         content: cleanContent,
+        model: selectedModel,
+        verified: data.verified,
+        merkle_root: data.merkle_root,
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -88,15 +160,39 @@ export default function AIChatPlayground() {
         setTokenCount(data.usage.completion_tokens)
         setTotalTokens(prev => prev + data.usage.total_tokens)
       }
-    } catch (error) {
+
+      setHistory(prev => [
+        {
+          model: selectedModel,
+          durationMs: endTime - startTime,
+          tokens: data.usage?.total_tokens ?? null,
+          status: 'ok',
+          fallback: modelsFallback,
+        },
+        ...prev,
+      ].slice(0, 5))
+    } catch (error: any) {
       console.error('Chat error:', error)
 
-      const errorMessage: ChatMessage = {
+      const errorMessage: LocalMessage = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
+        model: selectedModel,
+        error_status: error?.status || error?.response?.status,
+        error_text: error?.message,
       }
 
       setMessages(prev => [...prev, errorMessage])
+      setHistory(prev => [
+        {
+          model: selectedModel,
+          durationMs: null,
+          tokens: null,
+          status: 'error',
+          fallback: modelsFallback,
+        },
+        ...prev,
+      ].slice(0, 5))
     } finally {
       setIsLoading(false)
     }
@@ -137,7 +233,12 @@ export default function AIChatPlayground() {
                       <p className="text-lg mb-2">Ask me about Ambient!</p>
                       <p className="text-sm mb-4">I'm specialized in Ambient blockchain technology</p>
                       <div className="flex flex-wrap gap-2 justify-center max-w-md mx-auto">
-                        {['What is Ambient?', 'How does Proof of Logits work?', 'What is the verification overhead?'].map((q, i) => (
+                        {[
+                          'What is Ambient? Summarize in 2 sentences.',
+                          'Explain Proof of Logits step by step.',
+                          'How do I enable verified inference via API?',
+                          'Return an example answer in JSON format.',
+                        ].map((q, i) => (
                           <button
                             key={i}
                             onClick={() => setInput(q)}
@@ -171,10 +272,42 @@ export default function AIChatPlayground() {
                           <span className="text-xs opacity-70 uppercase">
                             {message.role === 'user' ? 'You' : 'Ambient AI'}
                           </span>
+                          {message.model && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10">
+                              {message.model}
+                            </span>
+                          )}
+                          {message.verified && (
+                            <span className="flex items-center gap-1 text-[10px] text-green-400">
+                              <Shield className="w-3 h-3" />
+                              verified
+                            </span>
+                          )}
+                          {message.error_status && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-200">
+                              Hata {message.error_status}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">
                           {message.content}
                         </p>
+                        {message.merkle_root && (
+                          <button
+                            type="button"
+                            className="mt-2 inline-flex items-center gap-1 text-[11px] text-blue-300 hover:text-white"
+                            onClick={() => navigator.clipboard?.writeText(message.merkle_root!)}
+                            title="Merkle root'u kopyala"
+                          >
+                            <Clipboard className="w-3 h-3" />
+                            <span>hash</span>
+                          </button>
+                        )}
+                        {message.error_text && (
+                          <p className="mt-2 text-[12px] text-amber-300">
+                            {message.error_text}
+                          </p>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -199,7 +332,42 @@ export default function AIChatPlayground() {
               </div>
 
               {/* Input */}
-              <form onSubmit={handleSubmit} className="p-4 border-t border-white/5">
+              <form onSubmit={handleSubmit} className="p-4 border-t border-white/5 space-y-3">
+                <div className="flex gap-3">
+                  <div className="w-48">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs text-gray-400">Model</label>
+                      {modelsLoading && (
+                        <span className="text-[10px] text-gray-500">yükleniyor…</span>
+                      )}
+                      {modelsFallback && !modelsLoading && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300">
+                          demo listesi
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      disabled={modelsLoading}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 disabled:opacity-60"
+                    >
+                      {models.map((m) => {
+                        const name = m.name || m.id
+                        const duplicate = models.filter(x => x.name === m.name && m.name).length > 1
+                        const label = duplicate ? `${name} (${m.id})` : name
+                        return (
+                          <option key={m.id} value={m.id}>
+                            {label}
+                          </option>
+                        )
+                      })}
+                    </select>
+                    {modelsError && (
+                      <p className="mt-1 text-[11px] text-amber-400">{modelsError}</p>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -251,6 +419,26 @@ export default function AIChatPlayground() {
                   value={responseTime ? `${responseTime}ms` : '-'}
                 />
               </div>
+              {history.length > 0 && (
+                <div className="mt-5">
+                  <div className="text-xs text-gray-400 mb-2">Recent requests</div>
+                  <div className="space-y-2">
+                    {history.map((h, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm text-gray-300 bg-white/5 px-3 py-2 rounded-lg">
+                        <span className="font-mono text-xs">{h.model}</span>
+                        <span className="text-xs">{h.durationMs ? `${h.durationMs}ms` : '—'}</span>
+                        <span className="text-xs">{h.tokens ?? '—'} tok</span>
+                        <span className={`text-xs ${h.status === 'ok' ? 'text-green-400' : 'text-red-300'}`}>
+                          {h.status === 'ok' ? 'ok' : 'error'}
+                        </span>
+                        {h.fallback && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded">demo</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="glass-effect rounded-2xl p-6">

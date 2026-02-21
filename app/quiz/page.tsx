@@ -17,17 +17,29 @@ export default function QuizPage() {
   const [showExplanation, setShowExplanation] = useState(false)
   const [score, setScore] = useState(0)
   const [showTicket, setShowTicket] = useState(false)
+  const [startTime, setStartTime] = useState<number | null>(null)
 
   const handleUsernameSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (username.trim().length > 0) {
-      setQuizState('quiz')
-    }
+    if (!username.trim()) return
+    setQuizState('quiz')
+    setStartTime(Date.now())
   }
 
   const handleAnswerSelect = (optionIndex: number) => {
     if (showExplanation) return
     setSelectedOption(optionIndex)
+  }
+
+  const skipQuestion = () => {
+    setSelectedAnswers([...selectedAnswers, -1])
+    setShowExplanation(false)
+    setSelectedOption(null)
+    if (currentQuestion < quizQuestions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1)
+    } else {
+      setQuizState('results')
+    }
   }
 
   const handleNextQuestion = () => {
@@ -61,9 +73,12 @@ export default function QuizPage() {
     setShowExplanation(false)
     setScore(0)
     setShowTicket(false)
+    setStartTime(null)
+    setUsername('')
   }
 
   const level = getLevelForScore(score)
+  const elapsedSeconds = startTime ? Math.max(0, Math.round((Date.now() - startTime) / 1000)) : null
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -73,6 +88,17 @@ export default function QuizPage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        {/* Sticky back button */}
+        <div className="hidden md:block fixed top-6 left-6 z-20">
+          <motion.a
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 glass-effect rounded-full text-sm text-gray-200 hover:text-white border border-white/5"
+          >
+            Back to Home
+          </motion.a>
+        </div>
         <AnimatePresence mode="wait">
           {quizState === 'username' && (
             <motion.div
@@ -148,29 +174,31 @@ export default function QuizPage() {
                       className="w-full pl-10 pr-4 py-4 bg-gray-900/50 border-2 border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 transition-all text-lg font-medium"
                       required
                       pattern="[a-zA-Z0-9_]{1,15}"
-                      title="Valid Twitter username (1-15 characters, alphanumeric and underscore only)"
+                      title="1-15 characters, alphanumeric and underscore"
                       style={{ letterSpacing: '-0.01em' }}
                     />
                   </div>
                   <p className="mt-3 text-xs text-gray-500 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                    Your profile picture will be included in your result ticket
+                    Required for generating your ticket avatar.
                   </p>
                 </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-semibold text-base transition-all"
-                  style={{
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                    boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
-                  }}
-                >
-                  Start Quiz
-                  <ArrowRight className="w-5 h-5" />
-                </motion.button>
+                <div className="grid gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-semibold text-base transition-all"
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                      boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
+                    }}
+                  >
+                    Start Quiz
+                    <ArrowRight className="w-5 h-5" />
+                  </motion.button>
+                </div>
               </motion.form>
             </motion.div>
           )}
@@ -199,9 +227,12 @@ export default function QuizPage() {
                       <span className="text-gray-600"> / {quizQuestions.length}</span>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right space-y-1">
                     <div className="text-xs uppercase tracking-wider text-gray-500 mb-1">Score</div>
                     <div className="text-2xl font-bold text-blue-500">{score}</div>
+                    {elapsedSeconds !== null && (
+                      <div className="text-[11px] text-gray-500">{elapsedSeconds}s elapsed</div>
+                    )}
                   </div>
                 </div>
                 <div className="relative h-2 bg-gray-800/50 rounded-full overflow-hidden">
@@ -228,6 +259,12 @@ export default function QuizPage() {
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
                 }}
               >
+                <div className="flex items-center justify-between gap-4 mb-6 text-xs text-gray-500">
+                  <span>Mode: User</span>
+                  <span>Stage: Testnet</span>
+                  {elapsedSeconds !== null && <span>Time: {elapsedSeconds}s</span>}
+                </div>
+
                 <motion.h2
                   key={currentQuestion}
                   initial={{ opacity: 0, y: 10 }}
@@ -334,40 +371,52 @@ export default function QuizPage() {
                 </AnimatePresence>
               </motion.div>
 
-              {/* Submit Button */}
-              <motion.button
-                whileHover={{ scale: selectedOption !== null && !showExplanation ? 1.02 : 1 }}
-                whileTap={{ scale: selectedOption !== null && !showExplanation ? 0.98 : 1 }}
-                onClick={handleNextQuestion}
-                disabled={selectedOption === null || showExplanation}
-                className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-semibold text-base transition-all duration-300 disabled:cursor-not-allowed"
-                style={{
-                  background: selectedOption !== null && !showExplanation
-                    ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
-                    : '#1f2937',
-                  color: selectedOption !== null && !showExplanation ? '#ffffff' : '#6b7280',
-                  boxShadow: selectedOption !== null && !showExplanation
-                    ? '0 8px 24px rgba(59, 130, 246, 0.3)'
-                    : 'none',
-                }}
-              >
-                {showExplanation ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <Sparkles className="w-5 h-5" />
-                    </motion.div>
-                    Loading next question...
-                  </>
-                ) : (
-                  <>
-                    Submit Answer
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </motion.button>
+              {/* Submit / Skip Buttons */}
+              <div className="grid md:grid-cols-[2fr,1fr] gap-3">
+                <motion.button
+                  whileHover={{ scale: selectedOption !== null && !showExplanation ? 1.02 : 1 }}
+                  whileTap={{ scale: selectedOption !== null && !showExplanation ? 0.98 : 1 }}
+                  onClick={handleNextQuestion}
+                  disabled={selectedOption === null || showExplanation}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-semibold text-base transition-all duration-300 disabled:cursor-not-allowed"
+                  style={{
+                    background: selectedOption !== null && !showExplanation
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
+                      : '#1f2937',
+                    color: selectedOption !== null && !showExplanation ? '#ffffff' : '#6b7280',
+                    boxShadow: selectedOption !== null && !showExplanation
+                      ? '0 8px 24px rgba(59, 130, 246, 0.3)'
+                      : 'none',
+                  }}
+                >
+                  {showExplanation ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <Sparkles className="w-5 h-5" />
+                      </motion.div>
+                      Loading next question...
+                    </>
+                  ) : (
+                    <>
+                      Submit Answer
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: !showExplanation ? 1.02 : 1 }}
+                  whileTap={{ scale: !showExplanation ? 0.98 : 1 }}
+                  onClick={skipQuestion}
+                  disabled={showExplanation}
+                  className="w-full px-6 py-5 rounded-xl font-semibold text-base transition-all duration-300 disabled:cursor-not-allowed bg-gray-800 hover:bg-gray-700 text-gray-100"
+                >
+                  Skip
+                </motion.button>
+              </div>
             </motion.div>
           )}
 
@@ -517,7 +566,7 @@ export default function QuizPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
-                className="flex gap-4"
+                className="flex gap-4 flex-wrap"
               >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -539,6 +588,14 @@ export default function QuizPage() {
                 >
                   Try Again
                 </motion.button>
+                <motion.a
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="/"
+                  className="w-full md:w-auto px-8 py-5 glass-effect rounded-xl font-semibold text-base hover:bg-white/5 transition-all text-center"
+                >
+                  Back to Home
+                </motion.a>
               </motion.div>
             </motion.div>
           )}

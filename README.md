@@ -134,9 +134,16 @@ Create `.env.local` in the root directory with:
 ```bash
 # Optional: Ambient API key for live features
 AMBIENT_API_KEY=your_api_key_here
+# Optional: default model (use the exact id from /v1/models, e.g. ambient/large or zai-org/GLM-4.6)
+AMBIENT_DEFAULT_MODEL=ambient/large
 ```
 
 For Vercel deployment, add this as an environment variable in the Vercel dashboard.
+
+### Notes about the API proxy
+- The app calls `/api/chat` (server-side) and `/api/models` (server-side proxy) so your API key stays on the server.
+- The Ambient API (per `openapi.json`) expects `max_completion_tokens` (not `max_tokens`).
+- If `/api/models` fails, the UI falls back to `ambient/large` and `zai-org/GLM-4.6`.
 
 ## Tech Stack
 
@@ -151,6 +158,7 @@ For Vercel deployment, add this as an environment variable in the Vercel dashboa
 
 - [Ambient Website](https://ambient.xyz)
 - [Documentation](https://docs.ambient.xyz)
+- [Litepaper](https://ambient.xyz/litepaper)
 - [Twitter](https://x.com/ambient_xyz)
 - [Testnet](https://app.ambient.xyz)
 

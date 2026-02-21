@@ -16,7 +16,17 @@ interface ChatMessage {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { messages, model = 'large', temperature = 0.7, max_completion_tokens = 2048 } = body
+    const defaultModel = process.env.AMBIENT_DEFAULT_MODEL || 'ambient/large'
+    const {
+      messages,
+      model = defaultModel,
+      temperature = 0.7,
+      max_tokens: explicitMaxTokens,
+      max_completion_tokens,
+    } = body
+
+    const max_completion_tokens_final =
+      explicitMaxTokens ?? max_completion_tokens ?? 2048
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -46,7 +56,7 @@ export async function POST(request: NextRequest) {
         model,
         messages: messagesWithSystem,
         temperature,
-        max_completion_tokens,
+        max_completion_tokens: max_completion_tokens_final,
         stream: false,
         emit_usage: true,
         emit_verified: true,
@@ -57,7 +67,10 @@ export async function POST(request: NextRequest) {
       const errorText = await response.text()
       console.error('Ambient API error:', response.status, errorText)
       return NextResponse.json(
-        { error: `API request failed: ${response.statusText}` },
+        {
+          error: errorText || `API request failed: ${response.statusText}`,
+          status: response.status,
+        },
         { status: response.status }
       )
     }

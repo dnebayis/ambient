@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" fill="none">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3ed0ff"/>
+      <stop offset="100%" stop-color="#25a7f5"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5ca4ff"/>
+      <stop offset="100%" stop-color="#6cd3ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer ring -->
+  <circle cx="160" cy="165" r="135" fill="none" stroke="url(#ring)" stroke-width="10" />
+
+  <!-- Text -->
+  <text x="160" y="60" text-anchor="middle" fill="#5ca4ff" font-family="'Inter','Arial',sans-serif" font-size="34" font-weight="700" letter-spacing="4">
+    APPROVED
+  </text>
+
+  <!-- Body -->
+  <path d="M120 205c0-42 22-70 52-70s52 28 52 70v60H120v-60z" fill="url(#body)" stroke="#1f9bdc" stroke-width="4" />
+
+  <!-- Head -->
+  <circle cx="172" cy="150" r="38" fill="#e5e8ef" stroke="#8a93a5" stroke-width="4" />
+  <path d="M156 152c0-10 7-18 16-18s16 8 16 18" stroke="#5a6474" stroke-width="4" stroke-linecap="round" />
+  <circle cx="160" cy="156" r="5" fill="#5a6474" />
+  <circle cx="184" cy="156" r="5" fill="#5a6474" />
+  <path d="M164 168c6 5 16 5 22 0" stroke="#5a6474" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Arm giving thumbs-up -->
+  <path d="M206 205h42c7 0 12 6 11 13l-5 34c-1 8-6 13-13 13h-35" fill="url(#body)" stroke="#1f9bdc" stroke-width="4" />
+  <path d="M252 214c2-10-4-17-12-17h-12" stroke="#1f9bdc" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Chest motif -->
+  <path d="M138 218c10-9 20-9 30 0" stroke="#d9f7ff" stroke-width="6" stroke-linecap="round" />
+  <path d="M176 218c10-9 20-9 30 0" stroke="#d9f7ff" stroke-width="6" stroke-linecap="round" />
+
+  <!-- Guest label -->
+  <text x="160" y="300" text-anchor="middle" fill="#6b7280" font-family="'Inter','Arial',sans-serif" font-size="16" font-weight="700" letter-spacing="2">GUEST</text>
+</svg>

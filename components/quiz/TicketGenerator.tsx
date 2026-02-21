@@ -20,7 +20,6 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
   const [ticketBlob, setTicketBlob] = useState<Blob | null>(null)
 
   useEffect(() => {
-    // Fetch Twitter avatar through our proxy
     setAvatarUrl(`/api/twitter-avatar?username=${encodeURIComponent(username)}`)
 
     // Preload fonts for better rendering
@@ -93,7 +92,8 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
     const url = URL.createObjectURL(ticketBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `ambient-quiz-${username}.png`
+    const nameForFile = (username || 'guest').replace(/[^a-z0-9_-]/gi, '_')
+    link.download = `ambient-quiz-${nameForFile}.png`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -105,7 +105,7 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
       await generateTicket()
     }
 
-    const tweetText = `I just scored ${score}/10 on the Ambient Quiz and achieved ${level.name} level! 🚀\n\nTest your knowledge about AI-powered blockchain:\n`
+    const tweetText = `I just scored ${score}/10 on the Ambient Quiz and achieved ${level.name} level! 🚀 (@${username})\n\nTest your knowledge about AI-powered blockchain:\n`
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent('https://ambient.xyz')}`
 
     window.open(tweetUrl, '_blank')
@@ -168,14 +168,14 @@ export default function TicketGenerator({ username, score, level, onClose }: Tic
               <div className="absolute top-6 right-6 z-10">
                 <img
                   src={avatarUrl}
-                  alt={`@${username}`}
+                  alt={username ? `@${username}` : 'Guest'}
                   className="w-28 h-28 rounded-full object-cover"
                   style={{
                     border: '3px solid rgba(255, 255, 255, 0.12)',
                     boxShadow: `0 0 28px ${level.color}45, 0 8px 32px rgba(0, 0, 0, 0.5)`,
                   }}
                   onError={(e) => {
-                    e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${username}`
+                    e.currentTarget.src = '/guest-avatar.svg'
                   }}
                 />
               </div>

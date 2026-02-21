@@ -39,7 +39,7 @@ export default function PlaygroundPage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full glass-effect">
             <Sparkles className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-gray-400">AI Playground</span>
+            <span className="text-sm text-gray-400">AI Assistant</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             <span className="gradient-text">Ambient</span> AI Assistant
@@ -61,14 +61,14 @@ export default function PlaygroundPage() {
             <Bot className="w-5 h-5 text-blue-500" />
             <div>
               <div className="text-sm font-medium">Ambient Expert</div>
-              <div className="text-xs text-gray-400">Specialized knowledge</div>
+              <div className="text-xs text-gray-400">Specialized in PoL & API</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 glass-effect rounded-xl">
             <Shield className="w-5 h-5 text-green-500" />
             <div>
               <div className="text-sm font-medium">Verified Inference</div>
-              <div className="text-xs text-gray-400">On-chain proof</div>
+              <div className="text-xs text-gray-400">Merkle proof available</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 glass-effect rounded-xl">

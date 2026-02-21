@@ -9,7 +9,7 @@ export interface QuizQuestion {
 export const quizQuestions: QuizQuestion[] = [
   {
     id: 1,
-    question: "What consensus mechanism does Ambient blockchain use?",
+    question: "Which consensus does Ambient use?",
     options: [
       "Proof of Stake",
       "Proof of Logits",
@@ -17,115 +17,115 @@ export const quizQuestions: QuizQuestion[] = [
       "Delegated Proof of Stake"
     ],
     correctAnswer: 1,
-    explanation: "Ambient uses Proof of Logits (PoL), which leverages logits as verifiable 'mental states' in AI reasoning."
+    explanation: "Ambient uses Proof of Logits (PoL), hashing logits to prove inference."
   },
   {
     id: 2,
-    question: "What is the verification overhead in Ambient's Proof of Logits?",
+    question: "What does PoL hash for verification?",
     options: [
-      "5%",
-      "1%",
-      "0.1%",
-      "0.01%"
+      "Full model weights",
+      "Execution traces",
+      "Token logits",
+      "Network state"
     ],
     correctAnswer: 2,
-    explanation: "Ambient achieves a remarkably low 0.1% verification overhead, making it extremely efficient."
+    explanation: "PoL hashes per-token logits to fingerprint the computation."
   },
   {
     id: 3,
-    question: "How much faster is Ambient's inference compared to legacy systems?",
+    question: "Ambient is compatible with which VM?",
     options: [
-      "10x",
-      "50x",
-      "100x",
-      "1000x"
+      "EVM",
+      "SVM (Solana Virtual Machine)",
+      "Move VM",
+      "CosmWasm"
     ],
-    correctAnswer: 2,
-    explanation: "Ambient's hyper-optimized PoL consensus delivers 100x faster LLM operations compared to legacy systems."
+    correctAnswer: 1,
+    explanation: "Ambient is forked from Solana and keeps SVM compatibility for tooling and developer experience."
   },
   {
     id: 4,
-    question: "What is the parameter size of Ambient's AI model?",
+    question: "Ambient is currently in which network stage?",
     options: [
-      "100B+",
-      "300B+",
-      "600B+",
-      "1T+"
+      "Mainnet",
+      "Testnet",
+      "Devnet only",
+      "Maintenance mode"
     ],
-    correctAnswer: 2,
-    explanation: "Ambient operates on a massive 600B+ parameter model with provably secure inference."
+    correctAnswer: 1,
+    explanation: "Ambient is positioned as an active testnet in the UI copy."
   },
   {
     id: 5,
-    question: "Which blockchain architecture is Ambient forked from?",
+    question: "Ambient positions itself primarily as:",
     options: [
-      "Ethereum",
-      "Solana",
-      "Polkadot",
-      "Cosmos"
+      "A privacy L2",
+      "An AI-first L1 with PoL",
+      "A gaming sidechain",
+      "A DeFi yield optimizer"
     ],
     correctAnswer: 1,
-    explanation: "Ambient is a Solana fork chain that combines Solana's high speed with innovative PoL consensus."
+    explanation: "Ambient is presented as an AI-first Layer 1 using Proof of Logits."
   },
   {
     id: 6,
-    question: "Who led Ambient's $7.2M seed funding round?",
+    question: "Default model id in the demo app is:",
     options: [
-      "Sequoia Capital",
-      "Paradigm",
-      "a16z CSX",
-      "Coinbase Ventures"
+      "ambient/base",
+      "ambient/large",
+      "ambient/chat",
+      "zai-org/GLM-4.6"
     ],
-    correctAnswer: 2,
-    explanation: "Ambient's seed round was led by a16z CSX, along with Delphi Digital and Amber Group."
+    correctAnswer: 1,
+    explanation: "The UI defaults to the 'ambient/large' model unless changed in settings or API response."
   },
   {
     id: 7,
-    question: "In Proof of Logits, how many tokens does a validator need to verify?",
+    question: "What kind of hardware can mine/validate in Ambient?",
     options: [
-      "All 4000 tokens",
-      "500 tokens",
-      "10 tokens",
-      "Just 1 token"
+      "ASICs only",
+      "Standard GPUs",
+      "CPU-only devices",
+      "Special AI accelerators only"
     ],
-    correctAnswer: 3,
-    explanation: "Mining requires 4000 tokens, but validation only needs to check 1 random token - making it cheap to verify but costly to mine."
+    correctAnswer: 1,
+    explanation: "The narrative emphasizes GPU-based mining/validation; no ASIC lock-in is mentioned."
   },
   {
     id: 8,
-    question: "What is Ambient's core value proposition?",
+    question: "Which part of the stack does PoL secure?",
     options: [
-      "Speed as Currency",
-      "Machine Intelligence as Currency",
-      "Data as Currency",
-      "Compute as Currency"
+      "Token transfers only",
+      "Smart contracts only",
+      "AI inference outputs",
+      "File storage"
     ],
-    correctAnswer: 1,
-    explanation: "Ambient's tagline is 'Machine Intelligence as Currency', representing AI-powered decentralized reasoning."
+    correctAnswer: 2,
+    explanation: "PoL is designed to secure AI inference outputs via logit hashing."
   },
   {
     id: 9,
-    question: "What does SVM stand for in Ambient's architecture?",
+    question: "Which compatibility benefit does SVM give Ambient?",
     options: [
-      "Secure Virtual Machine",
-      "Scalable Verification Module",
-      "Solana Virtual Machine",
-      "Smart Validation Mechanism"
+      "Runs EVM bytecode natively",
+      "Reuses Solana tooling and runtimes",
+      "Allows off-chain enclaves",
+      "Adds built-in ZK circuits"
     ],
-    correctAnswer: 2,
-    explanation: "SVM stands for Solana Virtual Machine, ensuring compatibility with Solana's ecosystem."
+    correctAnswer: 1,
+    explanation: "SVM means Solana Virtual Machine, enabling reuse of Solana tooling/runtimes."
   },
   {
     id: 10,
-    question: "By how much does Ambient reduce AI training costs?",
+    question: "Why is PoL verification cheap?",
     options: [
-      "2x",
-      "5x",
-      "10x",
-      "20x"
+      "It samples hashed logits instead of executing the model again",
+      "It skips safety checks",
+      "It uses smaller models for verification",
+      "It prunes layers at runtime"
     ],
-    correctAnswer: 2,
-    explanation: "Ambient's architecture reduces training costs by 10x compared to existing solutions."
+    correctAnswer: 0,
+    explanation: "PoL uses hashed logits to prove computation, avoiding full re-execution for verifiers."
   }
 ]
 

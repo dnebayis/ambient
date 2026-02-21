@@ -7,34 +7,34 @@ const architectureFeatures = [
   {
     icon: <Layers className="w-6 h-6" />,
     title: 'SVM-Compatible L1',
-    description: 'Forked from Solana, substituting Proof of Stake with Proof of Work while maintaining operational speeds and developer compatibility.',
+    description: 'Solana lineage keeps fast finality and tooling; consensus swapped for Proof of Logits to anchor AI inference.',
   },
   {
     icon: <Cpu className="w-6 h-6" />,
     title: 'On-Chain Fine-Tuning',
-    description: 'Continuously evolving open-source language model with on-chain fine-tuning capabilities and auditable operations.',
+    description: 'Model weights can be updated on-chain with auditable deltas; checkpoints are referenceable by hash.',
   },
   {
     icon: <Shield className="w-6 h-6" />,
     title: 'Verified Inference',
-    description: 'Real-time LLM verification without ZK bottlenecks or TEE lock-ins. Just provably secure inference with 0.1% overhead.',
+    description: 'Per-token logit hashing (claimed ~0.1% overhead) yields verifiable traces without TEEs or heavy ZK.',
   },
   {
     icon: <Zap className="w-6 h-6" />,
-    title: 'Hyperscale Training',
-    description: 'Programmatically specified trillion-parameter training runs distributed across network nodes with predictable economics.',
+    title: 'Deterministic Replay',
+    description: 'Logit fingerprints allow any node to replay and verify outputs, slashing inconsistent miners.',
   },
 ]
 
 const technicalSpecs = [
-  { label: 'Consensus Mechanism', value: 'Proof of Logits (PoL)' },
-  { label: 'Model Size', value: '600B+ Parameters' },
-  { label: 'Verification Overhead', value: '~0.1%' },
-  { label: 'Inference Speed', value: '100x Legacy Systems' },
-  { label: 'Training Cost Reduction', value: '10x Cheaper' },
-  { label: 'Block Time', value: '~10 seconds' },
-  { label: 'Compatibility', value: 'Solana Tooling' },
-  { label: 'Mining Hardware', value: 'Standard GPUs' },
+  { label: 'Consensus', value: 'Proof of Logits (PoL)' },
+  { label: 'Verification Overhead', value: 'claimed ~0.1% (per-token hashing)' },
+  { label: 'Model Footprint', value: '600B+ params (target/claim)' },
+  { label: 'Context Length', value: '200K (GLM-4.6)' },
+  { label: 'Runtime', value: 'SVM-compatible' },
+  { label: 'Block Time', value: 'target ~10s' },
+  { label: 'Mining', value: 'GPU, no ASIC lock-in' },
+  { label: 'Security', value: 'Hash-based replay, slashing' },
 ]
 
 export default function Architecture() {
